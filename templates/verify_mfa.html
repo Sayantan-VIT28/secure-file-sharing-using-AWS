@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="dark:bg-gray-900 transition-colors duration-300">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify MFA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            @apply bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700 transition-colors;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-300">
+    <div class="container mx-auto p-6 flex-grow">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Verify MFA for {{ action }}</h2>
+
+        <!-- Message container for success/failure -->
+        <div id="message" class="p-4 mb-4 rounded-lg hidden text-gray-700 dark:text-gray-300"></div>
+
+        <div class="card">
+            <!-- Dynamic form action - FIXED -->
+            <form method="POST" action="" class="space-y-4" id="mfaForm">
+                <div>
+                    <label for="otp" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Enter OTP</label>
+                    <input type="text" id="otp" name="otp" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" required>
+                </div>
+                <button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-md hover:from-blue-600 hover:to-blue-700 transition-all">Verify OTP</button>
+            </form>
+            <p class="mt-4"><a href="{{ url_for('admin_dashboard') }}" class="text-blue-500 dark:text-blue-400 hover:underline">Back to Dashboard</a></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const actionType = urlParams.get('type');
+            const form = document.getElementById('mfaForm');
+            
+            // Set the correct form action based on type
+            if (actionType === 'file_share') {
+                form.action = "{{ url_for('verify_file_mfa') }}";
+            } else if (actionType === 'decrypt') {
+                form.action = "{{ url_for('verify_decrypt_mfa') }}";
+            } else {
+                form.action = "{{ url_for('verify_mfa') }}"; // Default to login MFA
+            }
+        });
+
+        document.getElementById('mfaForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+            const form = event.target;
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+                
+                const result = await response.json(); // Expect JSON response
+                messageDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-red-900', 'text-red-300', 'bg-green-900', 'text-green-300');
+                
+                if (result.success) {
+                    // Show success message
+                    messageDiv.classList.add('bg-green-100', 'text-green-700', 'dark:bg-green-900', 'dark:text-green-300');
+                    messageDiv.textContent = result.message;
+                    
+                    // Handle auto-download for decryption
+                    if (result.auto_download) {
+                        // Trigger download immediately
+                        window.location.href = result.redirect_url;
+                    } else {
+                        // Normal redirect after delay
+                        setTimeout(() => {
+                            window.location.href = result.redirect_url || "{{ url_for('admin_dashboard') }}";
+                        }, 3000);
+                    }
+                } else {
+                    // Show failure message
+                    messageDiv.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-900', 'dark:text-red-300');
+                    messageDiv.textContent = result.message;
+                    
+                    // Redirect to login if specified (e.g., session/OTP expired), else stay on page
+                    if (result.redirect_url) {
+                        setTimeout(() => {
+                            window.location.href = result.redirect_url;
+                        }, 3000);
+                    } else {
+                        setTimeout(() => {
+                            messageDiv.classList.add('hidden');
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                // Show error on fetch failure
+                messageDiv.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-green-900', 'text-green-300');
+                messageDiv.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-900', 'dark:text-red-300');
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

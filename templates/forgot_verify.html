@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col justify-between">
+    <div class="container mx-auto p-6 flex justify-center items-center flex-grow">
+        <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Verify OTP and Reset Password</h2>
+            
+            <!-- Message container for success/failure -->
+            <div id="message" class="p-4 mb-4 rounded-lg hidden text-center"></div>
+
+            <form method="POST" action="{{ url_for('forgot_verify') }}" class="space-y-4" id="resetForm">
+                <div>
+                    <label class="block text-gray-700 font-medium">OTP:</label>
+                    <input type="text" name="otp" required class="w-full border border-gray-300 rounded-md p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium">New Password:</label>
+                    <input type="password" name="password" required class="w-full border border-gray-300 rounded-md p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Reset Password</button>
+            </form>
+            
+            <p class="mt-4 text-center"><a href="{{ url_for('login') }}" class="text-blue-500 hover:underline">Back to Login</a></p>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white text-center py-4">
+        <p>Developed by Sayantan Das | VITB2024</p>
+    </footer>
+
+    <script>
+        document.getElementById('resetForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+            const form = event.target;
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+                
+                const result = await response.json(); // Expect JSON response
+                messageDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+                
+                if (result.success) {
+                    // Show success message
+                    messageDiv.classList.add('bg-green-100', 'text-green-700');
+                    messageDiv.textContent = result.message;
+                    
+                    // Redirect to login page after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('login') }}";
+                    }, 3000);
+                } else {
+                    // Show failure message
+                    messageDiv.classList.add('bg-red-100', 'text-red-700');
+                    messageDiv.textContent = result.message;
+                    
+                    // Hide message after 3 seconds
+                    setTimeout(() => {
+                        messageDiv.classList.add('hidden');
+                    }, 3000);
+                }
+            } catch (error) {
+                // Show error on fetch failure
+                messageDiv.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                messageDiv.classList.add('bg-red-100', 'text-red-700');
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+        }
+        .loading-spinner {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="container mx-auto p-6 flex-grow">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Welcome, {{ username }} ({{ role }})</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-4 rounded-lg {{ 'bg-red-100 text-red-700' if category == 'error' else 'bg-green-100 text-green-700' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Share Files</h3>
+            <div class="file-manager">
+                <h4 class="text-lg font-medium text-gray-700 mb-2">File Selection (Max 5 files)</h4>
+                <div class="flex items-center gap-4 mb-4">
+                    <input type="file" id="fileInput" multiple class="border border-gray-300 rounded-md p-2">
+                    <button type="button" onclick="addFiles()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add Files</button>
+                </div>
+                <div id="fileList" class="text-gray-500">
+                    <p>No files selected</p>
+                </div>
+                <div id="selectedFiles" class="mt-4"></div>
+            </div>
+            <form method="POST" action="{{ url_for('dashboard') }}" enctype="multipart/form-data" class="mt-4" id="shareForm">
+                <input type="file" id="actualFiles" name="files" multiple style="display: none;">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium">Encryption Password:</label>
+                    <input type="password" name="password" required class="w-full border border-gray-300 rounded-md p-2 mt-1">
+                    <p class="text-sm text-gray-500 mt-1">Password must start with @</p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium">Recipient Email:</label>
+                    <input type="email" name="recipient_email" required class="w-full border border-gray-300 rounded-md p-2 mt-1">
+                </div>
+                <div class="flex items-center">
+                    <button type="button" onclick="prepareAndSubmitShareForm()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Share Files</button>
+                    <div id="loadingSpinner" class="loading-spinner"></div>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Decrypt Files</h3>
+            <form method="POST" action="{{ url_for('dashboard') }}" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium">Encrypted Files:</label>
+                    <input type="file" name="files" multiple required class="w-full border border-gray-300 rounded-md p-2 mt-1">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium">Decryption Password:</label>
+                    <input type="password" name="password" required class="w-full border border-gray-300 rounded-md p-2 mt-1">
+                </div>
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Decrypt Files</button>
+            </form>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Storage Usage</h3>
+            <p class="text-gray-700">Used: {{ used_storage/1024 }} GB / {{ total_storage/1024 }} GB ({{ usage_percent }}%)</p>
+            <p class="text-gray-700">Remaining: {{ remaining_storage/1024 }} GB</p>
+            <p class="text-gray-700">Active Bucket: {{ active_bucket or 'None' }}</p>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Past Shares</h3>
+            <ul class="list-disc pl-5">
+                {% for share in past_shares %}
+                    <li class="text-gray-600">
+                        {{ share.files|join(', ') }} shared with {{ share.recipient_email }} on {{ share.timestamp }}
+                        {% if share.encryption_time %}
+                            (Encryption Time: {{ share.encryption_time }} seconds)
+                        {% endif %}
+                        {% if share.decryption_time %}
+                            (Decryption Time: {{ share.decryption_time }} seconds)
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+            <p class="text-gray-700"><a href="{{ url_for('request_new_bucket') }}" class="text-blue-500 hover:underline">Request New Bucket</a></p>
+            <p class="text-gray-700"><a href="{{ url_for('logout') }}" class="text-blue-500 hover:underline">Logout</a></p>
+            <p class="text-gray-700">Contact Admin: {{ admin_name }} ({{ admin_email }})</p>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white text-center py-4">
+        <p>Developed by Sayantan Das | VITB2024</p>
+    </footer>
+
+    <script>
+        let selectedFiles = [];
+
+        function addFiles() {
+            const input = document.getElementById('fileInput');
+            const files = input.files;
+            
+            if (selectedFiles.length + files.length > 5) {
+                alert('Maximum 5 files allowed!');
+                return;
+            }
+            
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].size > 1024 * 1024 * 1024) { // 1024MB limit
+                    alert(`File ${files[i].name} exceeds 1024MB limit.`);
+                    return;
+                }
+                selectedFiles.push(files[i]);
+            }
+            
+            updateFileList();
+            input.value = '';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('selectedFiles');
+            fileList.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    ${file.name} (${formatFileSize(file.size)})
+                    <button type="button" onclick="removeFile(${index})" class="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600">Remove</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+            
+            const fileListDisplay = document.getElementById('fileList');
+            fileListDisplay.innerHTML = selectedFiles.length ? '' : '<p class="text-gray-500">No files selected</p>';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function prepareAndSubmitShareForm() {
+            const password = document.querySelector('input[name="password"]').value;
+            const recipientEmail = document.querySelector('input[name="recipient_email"]').value;
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const submitBtn = document.querySelector('#shareForm button');
+            
+            if (selectedFiles.length === 0) {
+                alert('Please select at least one file.');
+                return;
+            }
+            
+            if (!password) {
+                alert('Please enter an encryption password.');
+                return;
+            }
+            
+            if (!password.startsWith('@')) {
+                alert('Encryption password must start with "@".');
+                return;
+            }
+            
+            if (!recipientEmail) {
+                alert('Please enter a recipient email.');
+                return;
+            }
+            
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
+            
+            const actualFilesInput = document.getElementById('actualFiles');
+            actualFilesInput.files = dataTransfer.files;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            loadingSpinner.style.display = 'inline-block';
+            
+            document.getElementById('shareForm').submit();
+        }
+        
+        // Prevent form submission on Enter key
+        document.getElementById('shareForm').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

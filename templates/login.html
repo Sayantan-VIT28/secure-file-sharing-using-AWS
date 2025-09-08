@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Prevent caching of secure pages */
+        .no-cache {
+            margin: 0;
+            padding: 0;
+        }
+        /* Smooth transitions */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col justify-between no-cache">
+    <!-- Main content container -->
+    <div class="container mx-auto p-6 flex justify-center items-center flex-grow">
+        <!-- Login Form -->
+        <div id="loginForm" class="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Login</h2>
+            
+            <!-- Message container for success/failure -->
+            <div id="message" class="p-4 mb-4 rounded-lg hidden text-center"></div>
+
+            <form method="POST" action="{{ url_for('login') }}" class="space-y-4" id="loginFormSubmit">
+                <div>
+                    <label class="block text-gray-700 font-medium">Email:</label>
+                    <input type="email" name="email" required class="w-full border border-gray-300 rounded-md p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-medium">Password:</label>
+                    <input type="password" name="password" required class="w-full border border-gray-300 rounded-md p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-all">Login</button>
+            </form>
+            
+            <p class="mt-4 text-center">
+                <a href="{{ url_for('forgot_password') }}" class="text-blue-500 hover:underline">Forgot password? Reset Password</a>
+            </p>
+            
+            <p class="mt-4 text-center text-gray-700">
+                Don't have an account? <a href="{{ url_for('register') }}" class="text-blue-500 hover:underline font-medium">Register here</a>
+            </p>
+            
+            <!-- Dynamic admin contact information -->
+            <p class="mt-2 text-center text-gray-700">
+                Contact Admin: 
+                {% if admin_user %}
+                    {{ admin_user.username }} ({{ admin_user.email }})
+                {% else %}
+                    Please contact system administrator
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white text-center py-4">
+        <p>Developed by Sayantan Das | VITB2024</p>
+    </footer>
+
+    <script>
+        // Function to prevent caching of secure pages
+        function preventCaching() {
+            window.onload = function() {
+                if (performance.navigation.type === 2) {
+                    location.reload();
+                }
+            };
+            window.onpageshow = function(event) {
+                if (event.persisted) {
+                    window.location.reload();
+                }
+            };
+        }
+
+        // Handle form submission with messages
+        document.getElementById('loginFormSubmit').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+            const form = event.target;
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+                
+                const result = await response.json(); // Expect JSON response
+                messageDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+                
+                if (result.success) {
+                    // Show success message
+                    messageDiv.classList.add('bg-green-100', 'text-green-700');
+                    messageDiv.textContent = result.message;
+                    
+                    // Redirect to MFA verification page after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url || "{{ url_for('verify_mfa') }}";
+
+                    }, 3000);
+                } else {
+                    // Show failure message
+                    messageDiv.classList.add('bg-red-100', 'text-red-700');
+                    messageDiv.textContent = result.message;
+                    
+                    // Hide message after 3 seconds
+                    setTimeout(() => {
+                        messageDiv.classList.add('hidden');
+                    }, 3000);
+                }
+            } catch (error) {
+                // Show error on fetch failure
+                messageDiv.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                messageDiv.classList.add('bg-red-100', 'text-red-700');
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 3000);
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            preventCaching();
+        });
+    </script>
+</body>
+</html>

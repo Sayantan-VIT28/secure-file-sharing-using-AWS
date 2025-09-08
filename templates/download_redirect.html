@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Downloading Files</title>
+    <script>
+        function startDownload() {
+            window.location.href = "{{ download_url }}";
+            setTimeout(function() {
+                // Redirect to the appropriate dashboard based on user role
+                window.location.href = "{{ redirect_url }}";
+            }, 2000);
+        }
+    </script>
+</head>
+<body onload="startDownload()">
+    <div style="text-align: center; padding: 50px;">
+        <h2>{{ message }}</h2>
+        <p>Your download should start automatically. Redirecting in 2 seconds...</p>
+        <p>If download doesn't start, <a href="{{ download_url }}">click here</a></p>
+        <p><a href="{{ redirect_url }}">Return to dashboard</a></p>
+    </div>
+</body>
+</html>

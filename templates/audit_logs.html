@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Audit Logs</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="bg-white text-blue-600 px-4 py-2 rounded-md hover:bg-gray-100">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Filters -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Filter Logs</h2>
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">User Email</label>
+                    <select name="user_email" class="w-full border rounded-md p-2">
+                        <option value="">All Users</option>
+                        {% for email in unique_users %}
+                            <option value="{{ email }}" {% if email == current_user_filter %}selected{% endif %}>{{ email }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Action</label>
+                    <select name="action" class="w-full border rounded-md p-2">
+                        <option value="">All Actions</option>
+                        {% for action in unique_actions %}
+                            <option value="{{ action }}" {% if action == current_action_filter %}selected{% endif %}>{{ action }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Date</label>
+                    <input type="date" name="date" value="{{ current_date_filter }}" class="w-full border rounded-md p-2">
+                </div>
+                <div class="md:col-span-3">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Apply Filters
+                    </button>
+                    <a href="{{ url_for('audit_logs') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 ml-2">
+                        Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Clear All Logs Button -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-red-600">Danger Zone</h2>
+            <form action="{{ url_for('clear_audit_logs') }}" method="POST" onsubmit="return confirm('⚠️ WARNING: This will permanently delete ALL audit logs. This action cannot be undone. Are you sure?');">
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-all">
+                    🗑️ Clear All Audit Logs
+                </button>
+                <p class="text-sm text-gray-500 mt-2">This will permanently delete all audit log entries from the database.</p>
+            </form>
+        </div>
+
+        <!-- Audit Logs Table -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Audit Log Entries ({{ audit_logs|length }})</h2>
+            
+            {% if audit_logs %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border p-2">Timestamp</th>
+                            <th class="border p-2">User</th>
+                            <th class="border p-2">Action</th>
+                            <th class="border p-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in audit_logs %}
+                        <tr>
+                            <td class="border p-2">{{ log.timestamp }}</td>
+                            <td class="border p-2">{{ log.user_email }}</td>
+                            <td class="border p-2">
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                                    {{ log.action }}
+                                </span>
+                            </td>
+                            <td class="border p-2">{{ log.details }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No audit logs found matching your filters.</p>                            
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

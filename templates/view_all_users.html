@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Users - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .user-actions {
+            @apply flex gap-2 mt-2 flex-wrap;
+        }
+        .user-actions form {
+            @apply inline;
+        }
+        .table-container {
+            @apply overflow-x-auto;
+        }
+        .table {
+            @apply min-w-full border-collapse;
+        }
+        .table th, .table td {
+            @apply border border-gray-300 px-4 py-2 text-sm;
+        }
+        .table th {
+            @apply bg-gray-100 font-semibold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">All Users Management</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="bg-white text-blue-600 px-4 py-2 rounded-md hover:bg-gray-100">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Filters -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Filter Users</h2>
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Role</label>
+                    <select name="role" class="w-full border rounded-md p-2">
+                        <option value="">All Roles</option>
+                        {% for role in unique_roles %}
+                            <option value="{{ role }}" {% if role == current_role_filter %}selected{% endif %}>{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select name="status" class="w-full border rounded-md p-2">
+                        <option value="">All Status</option>
+                        <option value="approved" {% if 'approved' == current_status_filter %}selected{% endif %}>Approved</option>
+                        <option value="pending" {% if 'pending' == current_status_filter %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="md:col-span-3">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Apply Filters
+                    </button>
+                    <a href="{{ url_for('view_all_users') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 ml-2">
+                        Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">User Accounts ({{ users|length }})</h2>
+            
+            {% if users %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Buckets</th>
+                            <th>Storage Used (GB)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.approved %}
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Approved</span>
+                                {% else %}
+                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.buckets|length }}</td>
+                            <td>{{ "%.2f"|format(user.total_usage_gb) }}</td>
+                            <td>
+                                <div class="user-actions">
+                                    <!-- Approve User -->
+                                    {% if not user.approved %}
+                                    <form action="{{ url_for('approve_user', email=user.email) }}" method="POST" class="inline">
+                                        <button type="submit" class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">
+                                            Approve
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Add Bucket -->
+                                    <form method="POST" action="{{ url_for('add_bucket', email=user.email) }}">
+                                        <button type="submit" class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600">
+                                            Add Bucket
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete Bucket (if user has buckets) -->
+                                    {% if user.buckets %}
+                                    <form method="POST" action="{{ url_for('delete_bucket', email=user.email) }}">
+                                        <select name="bucket_to_delete" class="border rounded p-1 text-sm">
+                                            {% for bucket in user.buckets %}
+                                                <option value="{{ bucket }}">{{ bucket }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600 ml-1"
+                                                onclick="return confirm('Delete this bucket?')">
+                                            Delete Bucket
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Delete User -->
+                                    <form method="POST" action="{{ url_for('delete_user') }}">
+                                        <input type="hidden" name="user_email" value="{{ user.email }}">
+                                        <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700"
+                                                onclick="return confirm('Permanently delete {{ user.username }}? This cannot be undone!')">
+                                            Delete User
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No users found matching your filters.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
