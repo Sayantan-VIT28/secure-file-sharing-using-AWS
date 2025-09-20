@@ -135,3 +135,5 @@ Set the following environment variables:
 - **Environment Variables**: Store sensitive configurations in environment variables or a `.env` file (excluded via `.gitignore`).
 - **AWS Credentials**: Never commit AWS credentials or `.env` files to Git.
 - **Session Security**: Uses Flask-Session with filesystem storage and secure cookie settings.
+
+-**Watch the mp4 file**
