@@ -30,7 +30,7 @@ To run this application locally or deploy it, ensure the following are installed
 Install the required Python packages using pip:
 
 ```bash
-pip install flask flask-session boto3 botocore werkzeug passlib
+pip install flask flask-session boto3 botocore werkzeug passlib shutil logging re secrets time tempfile zipfile datetime string random subprocess uuid os render_template request redirect url_for session send_file flash jsonify secure_filename pbkdf2_sha256 BytesIO
 ```
 
 ### AWS Integrations
@@ -42,10 +42,9 @@ pip install flask flask-session boto3 botocore werkzeug passlib
   pip install awscli
   aws configure
   ```
-
   Provide your AWS Access Key ID, Secret Access Key, and default region (e.g., `us-west-2`).
 - **AWS S3**: Ensure you have permissions to create and manage S3 buckets.
-- **AWS SES**: Verify an email address (e.g., `grok@x.ai`) in SES for sending emails. Update `SES_CONSTANT_SENDER` in `app.py`.
+- **AWS SES**: Verify an email address (e.g., `your_email`) in SES for sending emails. Update `SES_CONSTANT_SENDER` in `app.py`. Note: All emails should either be registered in AWS  SES else opt out from AWS sandbox by sending an email to the aws provider.
 - **AWS DynamoDB**: Create the following tables:
   - `UsersTable`: Partition key `email` (string).
   - `SharesTable`: Partition key `share_id` (string), with a global secondary index `sender-email-index` on `sender_email` (string).
@@ -132,7 +131,7 @@ Set the following environment variables:
 
 ## Security Notes
 
-- **Sensitive Data**: All sensitive data (e.g., emails, passwords, paths) has been replaced with placeholders (e.g., `grok@x.ai`, `placeholder_admin_123`, `/secure/path/to/encryptor`).
+- **Sensitive Data**: All sensitive data (e.g., emails, passwords, paths) has been replaced with placeholders (e.g., `your_email`, `placeholder_admin_123`, `/secure/path/to/encryptor`).
 - **Environment Variables**: Store sensitive configurations in environment variables or a `.env` file (excluded via `.gitignore`).
 - **AWS Credentials**: Never commit AWS credentials or `.env` files to Git.
 - **Session Security**: Uses Flask-Session with filesystem storage and secure cookie settings.
