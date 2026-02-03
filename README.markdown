@@ -71,6 +71,25 @@ Set the following environment variables:
   export FLASK_SECRET_KEY='placeholder_secret_key_1234567890abcdef'
   ```
 
+🛠 Cross-Language Integration: Python & C++
+To balance developer productivity with high-performance cryptography, this application utilizes a Hybrid Architecture:
+
+Frontend/Logic (Python/Flask): Handles the web interface, AWS SDK (Boto3) calls, and user session management.
+
+Cryptographic Core (C++): A compiled C++ executable handles AES-GCM (Galois/Counter Mode). This ensures authenticated encryption that is significantly faster than standard interpreted Python libraries.
+
+The Bridge: The Flask server communicates with the C++ engine using the subprocess module, passing file paths and encryption keys as secure arguments to the compiled binary.
+
+Workflow:
+
+User uploads a file via the Flask UI.
+
+Flask triggers the C++ engine: subprocess.run([AES_EXE_PATH, mode, file_path, key]).
+
+The C++ engine encrypts/decrypts the file at the hardware level.
+
+Flask handles the resulting secure file and uploads it to AWS S3.
+
 ## Setup Instructions
 
 1. **Clone the Repository**:
